@@ -1,0 +1,28 @@
+
+efa.lavaan = function(fa.result, factor.names, loading.crit){
+  efa.result1 = subset(parameterestimates(fa.result),op=='=~')
+  efa.result2 = subset(parameterestimates(fa.result),op=='~~')
+  efa.result2 = efa.result2[!efa.result2$lhs%in%factor.names,]
+  efa.result3 = subset(parameterestimates(fa.result),op=='~~')
+  efa.result3 = efa.result3[efa.result3$lhs!=efa.result3$rhs,]
+  i = 1
+  nf = length(names(table(efa.result1$lhs)))
+  efa.result = NULL
+  for (i in 1:nf){
+    fnames = names(table(efa.result1$lhs))
+    efa.result = cbind(efa.result,
+                       F = round(efa.result1[efa.result1$lhs==fnames[i],]$est,3))
+  }
+  efa.result = data.frame(efa.result,
+                          h2 = round(1-efa.result2[efa.result2$lhs==efa.result2$rhs,]$est,3),
+                          u = round(efa.result2[efa.result2$lhs==efa.result2$rhs,]$est,3))
+  rownames(efa.result) = efa.result1[efa.result1$lhs==fnames[i],]$rhs
+  if(length(fnames)!=1){colnames(efa.result)[1:nf] = factor.names}
+  efa.result4 = apply(efa.result[,1:(ncol(efa.result))], 2, function(t) sum(t^2))[-c(ncol(efa.result),ncol(efa.result)-1)]
+  efa.result = list(Pattern_Matrix=cbind(replace(efa.result[,1:(ncol(efa.result)-2)],abs(efa.result[,1:(ncol(efa.result)-2)])<abs(loading.crit),""), efa.result[,c('h2','u')]),
+                    SS_Loadings=efa.result4,
+                    Phi=if(length(fnames)!=1){efa.result3
+                    }else{'No Covariance'})
+  if(length(fnames)==1){colnames(efa.result[[1]])[1]=fnames}
+  efa.result
+}
